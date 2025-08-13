@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+body{
+ background-color: #202020;
+ color: white;
+}
+
+input, select {
+  background-color: #2d2d2d;
+  border-color: #4b5563;
+}
+
+input:focus, select:focus {
+  border-color: #3b82f6;
+  outline: none;
+}
+
+input::placeholder, select::placeholder {
+  color: #9ca3af;
+}
+
+/* Estilo para el div "opciones" */
+.opciones {
+  background-color: #2d2d2d;
+  color: white;
+  border: 1px solid #4b5563;
+  border-radius: 8px;
+}
+
+/* Hover en las opciones */
+.opciones div:hover {
+  background-color: #10b981; /* Verde en hover */
+  cursor: pointer;
+}
