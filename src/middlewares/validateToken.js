@@ -6,14 +6,14 @@ import {
 export const authRequired = (req, res, next) => {
  const token = req.cookies.token
 
- if (!token)
+ if (!token) 
   return res.status(401).json({
    message: "Sin token, autorización denegada"
   })
 
  jwt.verify(token, TOKEN_SECRET, (err, decoded) => {
   if (err) {
-   // Invalida la cookie si el token es inválido
+ // Invalida la cookie si el token es inválido
    res.cookie('token', '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -45,8 +45,8 @@ export const authRequired = (req, res, next) => {
    estado: decoded.estado
   } // Estandariza el objeto user
   next()
- })
-}
+  })
+ }
 
 
 // Middleware para verificar rol de administrador

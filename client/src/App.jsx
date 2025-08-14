@@ -3,6 +3,7 @@ import { AuthProvider } from "./components/AuthProvider"
 import Navbar from "./components/Navbar"
 import PaginaRegistro from "./pages/PaginaRegistro"
 import PaginaLogin from "./pages/PaginaLogin"
+import PaginaRecuperarContrasena from "./pages/PaginaRecuperarContrasena"
 import PaginaEscanearQR from "./pages/PaginaEscanearQR"
 import PaginaCrearEvento from "./pages/PaginaCrearEvento"
 import PaginaListaEventos from "./pages/PaginaListaEventos"
@@ -16,7 +17,7 @@ import PaginaNoAutorizado from "./pages/PaginaNoAutorizado"
 function AppContent() {
  const location = useLocation();
  // Rutas donde NO quieres navbar
- const hideNavbarRoutes = ["/"];
+ const hideNavbarRoutes = ["/", "/recuperar-contrasena"];
  const shouldShowNavbar = !hideNavbarRoutes.includes(location.pathname);
 
  return (
@@ -24,6 +25,7 @@ function AppContent() {
    {shouldShowNavbar && <Navbar />}
    <Routes>
     <Route path="/" element={<PaginaLogin />} />
+    <Route path="/recuperar-contrasena" element={<PaginaRecuperarContrasena />} />
     <Route path="/no-autorizado" element={<PaginaNoAutorizado />} />
 
     <Route element={<ProtectedRoute />}>
@@ -65,7 +67,7 @@ function AppContent() {
       </RoleProtectedRoute>
      } />
     </Route>
-  </Routes >
+   </Routes >
   </>
  );
 }

@@ -5,7 +5,9 @@ import {
  login,
  registrar,
  logout,
- verifyToken
+ verifyToken,
+ requestPasswordReset,
+ resetPassword,
 } from '../controllers/auth.controller.js'
 import {
  authRequired,
@@ -23,6 +25,8 @@ const router = Router()
 
 router.post('/registro', authRequired, adminRequired, validateSchema(registroSchema), registrar)
 router.post('/', validateSchema(loginSchema), login)
+router.post('/forgot-password', requestPasswordReset)
+router.post('/reset-password', resetPassword)
 router.post('/logout', logout)
 router.get('/verify', verifyToken)
 

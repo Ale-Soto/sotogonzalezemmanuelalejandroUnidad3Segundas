@@ -1,4 +1,5 @@
 import User from "../models/user.model.js"
+import transporter from "../utils/transporter.js"
 import bcrypt from "bcryptjs"
 import {
  createAccessToken
@@ -7,6 +8,12 @@ import jwt from "jsonwebtoken"
 import {
  TOKEN_SECRET
 } from "../config.js"
+import crypto from 'crypto'
+
+// Generar token de recuperación
+const generateResetToken = () => {
+ return crypto.randomBytes(20).toString('hex')
+}
 
 export const registrar = async (req, res) => {
  const {
@@ -75,25 +82,25 @@ export const login = async (req, res) => {
   username,
   password,
  } = req.body
- try {
-
-  const userFound = await User.findOne({
+ try { 
+  
+   const userFound = await User.findOne({
    username
   })
 
   if (!userFound) return res.status(400).json({
-   message: "No se encontró al usuario"
-  })
-
+    message: "No se encontró al usuario"
+   })
+  
   if (userFound.estado !== 1) return res.status(403).json({
-   message: "Cuenta bloqueada"
-  })
+    message: "Cuenta bloqueada"
+   })
 
   const isMatch = await bcrypt.compare(password, userFound.password)
 
   if (!isMatch) return res.status(400).json({
-   message: "Contraseña incorrecta"
-  })
+    message: "Contraseña incorrecta"
+   })
 
   const token = await createAccessToken({
    id: userFound._id,
@@ -102,12 +109,12 @@ export const login = async (req, res) => {
    estado: userFound.estado
   })
 
-  res.cookie('token', token, {
-   httpOnly: true, // restringe el acceso desde JavaScript
-   secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
-   sameSite: 'strict', // Previene vulnerabilidad
-   maxAge: 24 * 60 * 60 * 1000, // 1 día de expiración
-  })
+res.cookie('token', token, {
+  httpOnly: true, // restringe el acceso desde JavaScript
+  secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
+  sameSite: 'strict', // Previene vulnerabilidad
+  maxAge: 24 * 60 * 60 * 1000, // 1 día de expiración
+})
   res.json({
    id: userFound._id,
    username: userFound.username,
@@ -143,6 +150,109 @@ export const perfil = async (req, res) => {
   username: userFound.username,
  })
 
+}
+
+// Enviar correo de recuperación
+export const requestPasswordReset = async (req, res) => {
+ try {
+  const {
+   email
+  } = req.body;
+  const user = await User.findOne({
+   email
+  })
+
+  if (!user) {
+   return res.status(404).json({
+    message: "Usuario no encontrado"
+   })
+  }
+
+  // Generar y guardar token
+  const resetToken = generateResetToken()
+  const resetTokenExpiry = Date.now() + 300000 // 5 min de expiración
+
+  user.resetPasswordToken = resetToken
+  user.resetPasswordExpires = resetTokenExpiry
+  await user.save()
+
+  // Enviar correo
+  const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+
+  await transporter.sendMail({
+   from: `"Soporte Lista" <${process.env.MAIL_USER}>`,
+   to: user.email,
+   subject: "Instrucciones para restablecer tu contraseña",
+   html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2563eb;">Restablecimiento de Contraseña</h2>
+          <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta.</p>
+          <p>Tu código de verificación es: <strong>${resetToken}</strong></p>
+          <p>O haz clic en el siguiente enlace:</p>
+          <a href="${resetUrl}" 
+             style="display: inline-block; padding: 10px 20px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 5px;">
+             Restablecer Contraseña
+          </a>
+          <p style="margin-top: 20px; color: #6b7280;">
+            Si no solicitaste este cambio, por favor ignora este mensaje.
+          </p>
+        </div>
+      `
+  })
+
+  res.status(200).json({
+   message: "Correo de recuperación enviado"
+  })
+ } catch (error) {
+  console.error("Error en recuperación:", error)
+  res.status(500).json({
+   message: "Error al procesar la solicitud"
+  })
+ }
+}
+
+// Validar token y actualizar contraseña
+export const resetPassword = async (req, res) => {
+ try {
+  const {
+   token,
+   newPassword
+  } = req.body
+
+  const user = await User.findOne({
+   resetPasswordToken: token,
+   resetPasswordExpires: {
+    $gt: Date.now()
+   }
+  });
+
+  if (!user) {
+   return res.status(400).json({
+    message: "Token inválido o expirado"
+   })
+  }
+
+  // Actualizar contraseña
+  user.password = await bcrypt.hash(newPassword, 10)
+  user.resetPasswordToken = undefined
+  user.resetPasswordExpires = undefined
+  await user.save()
+
+  // Enviar confirmación
+  await transporter.sendMail({
+   to: user.email,
+   subject: "Contraseña actualizada",
+   text: "Tu contraseña ha sido cambiada exitosamente."
+  })
+
+  res.status(200).json({
+   message: "Contraseña actualizada correctamente"
+  })
+ } catch (error) {
+  res.status(500).json({
+   message: error.message
+  })
+ }
 }
 
 export const verifyToken = async (req, res) => {
